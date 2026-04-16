@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --background: #eef3f8;
+  --background-strong: #d7e4f3;
+  --foreground: #0f1723;
+  --panel: rgba(16, 24, 39, 0.94);
+  --panel-soft: rgba(255, 255, 255, 0.88);
+  --line: rgba(148, 163, 184, 0.22);
+  --muted: #64748b;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(30, 64, 175, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 24%),
+    linear-gradient(180deg, var(--background) 0%, #f7fafc 44%, #ffffff 100%);
+  color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.panel {
+  @apply rounded-3xl border border-slate-200/60 shadow-panel backdrop-blur;
+  background: var(--panel-soft);
+}
+
+.panel-dark {
+  @apply rounded-3xl border border-white/10 text-white shadow-panel backdrop-blur;
+  background: rgba(2, 6, 23, 0.88);
+}
+
+.pill {
+  @apply inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold tracking-wide text-blue-700;
+}
+
+.eyebrow {
+  @apply text-[11px] font-semibold uppercase tracking-[0.22em];
+  color: var(--muted);
+}
+
+.section-title {
+  @apply text-2xl font-semibold tracking-tight text-slate-900;
+}
+
+.soft-rule {
+  border-color: var(--line);
+}
