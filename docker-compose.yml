@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: enterprise-idp-postgres
+    environment:
+      POSTGRES_DB: enterprise_idp
+      POSTGRES_USER: enterprise
+      POSTGRES_PASSWORD: enterprise
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U enterprise -d enterprise_idp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: enterprise-idp-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: enterprise-idp-backend
+    env_file:
+      - ./backend/.env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://enterprise:enterprise@postgres:5432/enterprise_idp
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      STORAGE_ROOT: /app/data
+      DEMO_DOCS_ROOT: /workspace/demo_docs
+      FRONTEND_ORIGIN: http://localhost:3000
+      LLM_PROVIDER: mock
+    volumes:
+      - ./backend:/app
+      - ./demo_docs:/workspace/demo_docs
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+    container_name: enterprise-idp-worker
+    command: celery -A app.workers.celery_app.celery_app worker -l info
+    env_file:
+      - ./backend/.env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://enterprise:enterprise@postgres:5432/enterprise_idp
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      STORAGE_ROOT: /app/data
+      DEMO_DOCS_ROOT: /workspace/demo_docs
+      FRONTEND_ORIGIN: http://localhost:3000
+      LLM_PROVIDER: mock
+    volumes:
+      - ./backend:/app
+      - ./demo_docs:/workspace/demo_docs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: enterprise-idp-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
